@@ -8,7 +8,7 @@
     "start": "node src/server.js",
     "db:migrate": "node src/db/migrate.js",
     "db:seed": "node src/db/seed.js",
-    "check": "node --check src/app.js && node --check src/services/game.js && node --check src/services/aiJudge.js && node --check src/services/codeRunner.js",
+    "check": "node --check src/app.js && node --check src/middleware/rateLimiter.js && node --check src/services/game.js && node --check src/services/aiJudge.js && node --check src/services/codeRunner.js",
     "test": "node test_system.js",
     "questions:import": "node src/db/importQuestions.js"
   },

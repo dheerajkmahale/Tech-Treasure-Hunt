@@ -1,19 +1,12 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { clearSession, issueSession, requireAuth } from '../middleware/auth.js';
 import { audit } from '../services/audit.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'AUTH_RATE_LIMIT', message: 'Too many authentication attempts. Try again later.' }
-});
 
 const registerSchema = z.object({
   fullName: z.string().trim().min(2).max(100),

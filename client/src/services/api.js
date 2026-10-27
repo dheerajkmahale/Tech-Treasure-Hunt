@@ -77,9 +77,13 @@ export const api = {
 };
 
 export function readableError(error) {
+  if (error?.issues && Array.isArray(error.issues) && error.issues.length > 0) {
+    return error.issues.map(i => i.message).join(' ');
+  }
   if (error?.status === 401) return 'Your session has expired. Please sign in again.';
   if (error?.status === 404) return error?.message || 'The requested archive endpoint was not found (404).';
-  if (error?.status === 429) return 'Too many attempts. Please wait before trying again.';
+  if (error?.status === 409) return error?.message || 'An account with this email already exists.';
+  if (error?.status === 429) return error?.message || 'Too many attempts. Please wait before trying again.';
   if (error?.status === 503) return error?.message || 'Database connection is not configured on the server.';
   return error?.message || 'The archive could not be reached. Check that the API server is running.';
 }

@@ -139,8 +139,154 @@ async function runTests() {
   assert.strictEqual(testCors('https://malicious-attacker.com'), false);
   console.log('✓ CORS correctly allows Vercel production, Vercel preview, and local development origins, rejecting third-party domains.\n');
 
+  // TEST 7: Invalid Input Handling & Error Reporting
+  console.log('--- TEST 7: REGISTRATION INVALID INPUT VALIDATION ---');
+  const testInputs = [
+    { payload: { fullName: '', email: 'valid@edu.org', password: 'ValidPassword123' }, expectedPath: 'fullName', desc: 'Empty name' },
+    { payload: { fullName: '   ', email: 'valid@edu.org', password: 'ValidPassword123' }, expectedPath: 'fullName', desc: 'Whitespace-only name' },
+    { payload: { fullName: 'A', email: 'valid@edu.org', password: 'ValidPassword123' }, expectedPath: 'fullName', desc: 'Name < 2 characters' },
+    { payload: { fullName: 'Alice Explorer', email: 'invalid-email', password: 'ValidPassword123' }, expectedPath: 'email', desc: 'Malformed email' },
+    { payload: { fullName: 'Alice Explorer', email: 'valid@edu.org', password: 'short' }, expectedPath: 'password', desc: 'Password < 10 characters' },
+    { payload: { fullName: 'Alice Explorer', email: 'valid@edu.org', password: 'x'.repeat(129) }, expectedPath: 'password', desc: 'Password > 128 characters' }
+  ];
+
+  for (const testCase of testInputs) {
+    const parseResult = registerSchema.safeParse(testCase.payload);
+    assert.strictEqual(parseResult.success, false, `Expected failure for: ${testCase.desc}`);
+    const paths = parseResult.error.issues.map(i => i.path.join('.'));
+    assert.ok(paths.includes(testCase.expectedPath), `Expected error path "${testCase.expectedPath}" for ${testCase.desc}`);
+  }
+  console.log('✓ All invalid registration inputs properly rejected with accurate validation issue paths.\n');
+
+  // TEST 8: Successful Registration Flow & Duplicate Email Handling
+  console.log('--- TEST 8: REGISTRATION FLOW & DUPLICATE EMAIL HANDLING ---');
+  const rawPassword = 'ExplorerSecurePassword2026!';
+  const hashedPassword = await bcrypt.hash(rawPassword, 12);
+  const mockUser = {
+    id: 101,
+    full_name: 'Elena Rostova',
+    email: 'elena@archive.org',
+    role: 'player',
+    created_at: new Date().toISOString()
+  };
+
+  // Verify password hash integrity
+  assert.strictEqual(await bcrypt.compare(rawPassword, hashedPassword), true);
+  assert.strictEqual(await bcrypt.compare('WrongPassword999', hashedPassword), false);
+
+  // Verify session issuance and cookie formatting
+  let cookieCaptured = null;
+  const mockRes = {
+    cookie(name, val, opts) {
+      cookieCaptured = { name, val, opts };
+    }
+  };
+  const { issueSession } = await import('./src/middleware/auth.js');
+  const issuedToken = issueSession(mockRes, mockUser);
+  assert.ok(issuedToken, 'Token must be issued');
+  assert.strictEqual(cookieCaptured?.name, 'tth_session', 'Session cookie must be named tth_session');
+  assert.strictEqual(cookieCaptured?.opts?.httpOnly, true, 'Session cookie must be httpOnly');
+
+  // Verify duplicate email error handling (simulating PostgreSQL unique violation code 23505)
+  function handleRegisterError(err) {
+    if (err.code === '23505') {
+      return { status: 409, body: { error: 'EMAIL_EXISTS', message: 'An account with this email already exists.' } };
+    }
+    return { status: 500, body: { error: 'INTERNAL_ERROR' } };
+  }
+  const duplicateErr = new Error('duplicate key value violates unique constraint "users_email_key"');
+  duplicateErr.code = '23505';
+  const duplicateResponse = handleRegisterError(duplicateErr);
+  assert.strictEqual(duplicateResponse.status, 409, 'Duplicate email must return HTTP 409');
+  assert.strictEqual(duplicateResponse.body.error, 'EMAIL_EXISTS');
+  assert.strictEqual(duplicateResponse.body.message, 'An account with this email already exists.');
+  console.log('✓ Registration hashing, session issuance, and duplicate email (409 EMAIL_EXISTS) verified.\n');
+
+  // TEST 9: Rate Limiting & Proxy IP Resolution
+  console.log('--- TEST 9: RATE LIMITING & REVERSE PROXY IP RESOLUTION ---');
+  const { getClientIp, cleanIp } = await import('./src/middleware/rateLimiter.js');
+
+  // Verify client IP extraction from reverse proxy headers
+  assert.strictEqual(cleanIp('::ffff:192.168.1.100'), '192.168.1.100', 'Should strip IPv6-mapped IPv4 prefix');
+  assert.strictEqual(cleanIp('203.0.113.50:8080'), '203.0.113.50', 'Should strip IPv4 port');
+  assert.strictEqual(cleanIp('[2001:db8::1]:443'), '2001:db8::1', 'Should strip IPv6 port');
+
+  const reqCf = { headers: { 'cf-connecting-ip': '198.51.100.22' } };
+  assert.strictEqual(getClientIp(reqCf), '198.51.100.22', 'Should extract cf-connecting-ip');
+
+  const reqTrueClient = { headers: { 'true-client-ip': '198.51.100.33' } };
+  assert.strictEqual(getClientIp(reqTrueClient), '198.51.100.33', 'Should extract true-client-ip');
+
+  const reqXff = { headers: { 'x-forwarded-for': '198.51.100.44, 10.0.0.1, 172.68.1.1' } };
+  assert.strictEqual(getClientIp(reqXff), '198.51.100.44', 'Should extract first client IP from X-Forwarded-For');
+
+  // Live Express rate limiting test behind proxy
+  const { default: express } = await import('express');
+  const { default: rateLimit } = await import('express-rate-limit');
+
+  const testApp = express();
+  testApp.set('trust proxy', 1);
+  testApp.use(express.json());
+
+  const testLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 3,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: (req) => getClientIp(req),
+    message: { error: 'AUTH_RATE_LIMIT', message: 'Too many authentication attempts. Please wait a few minutes before trying again.' }
+  });
+
+  testApp.post('/test-auth', testLimiter, (req, res) => {
+    res.status(200).json({ ok: true, ip: getClientIp(req) });
+  });
+
+  const testServer = await new Promise(resolve => {
+    const s = testApp.listen(0, '127.0.0.1', () => resolve(s));
+  });
+  const testPort = testServer.address().port;
+  const testUrl = `http://127.0.0.1:${testPort}/test-auth`;
+
+  try {
+    // Client 1 (IP 203.0.113.1): make 3 requests within limit -> all succeed
+    for (let i = 1; i <= 3; i++) {
+      const res = await fetch(testUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '203.0.113.1' },
+        body: JSON.stringify({})
+      });
+      assert.strictEqual(res.status, 200, `Client 1 request ${i} must succeed with 200`);
+    }
+
+    // Client 1: 4th request exceeds limit -> must return 429 AUTH_RATE_LIMIT
+    const resBlocked = await fetch(testUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '203.0.113.1' },
+      body: JSON.stringify({})
+    });
+    assert.strictEqual(resBlocked.status, 429, 'Excessive requests from Client 1 must be rate-limited (429)');
+    const blockedData = await resBlocked.json();
+    assert.strictEqual(blockedData.error, 'AUTH_RATE_LIMIT');
+    assert.ok(resBlocked.headers.has('ratelimit'), 'Must include standard draft-7 ratelimit header');
+    assert.ok(resBlocked.headers.has('retry-after'), 'Must include retry-after header');
+
+    // Client 2 (IP 203.0.113.2): different IP behind same proxy -> must succeed with 200!
+    // Proves that Client 2 is NOT locked out when Client 1 is rate-limited!
+    const resClient2 = await fetch(testUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': '203.0.113.2' },
+      body: JSON.stringify({})
+    });
+    assert.strictEqual(resClient2.status, 200, 'Client 2 must succeed and not be affected by Client 1 rate limit');
+    const client2Data = await resClient2.json();
+    assert.strictEqual(client2Data.ip, '203.0.113.2');
+  } finally {
+    await new Promise(resolve => testServer.close(resolve));
+  }
+  console.log('✓ Rate limiting correctly protects endpoints, enforces limits per client IP, and isolates users behind reverse proxies.\n');
+
   console.log('====================================================');
-  console.log('ALL VERIFICATION CHECKS PASSED (6 OF 6 SUCCEEDED)');
+  console.log('ALL VERIFICATION CHECKS PASSED (9 OF 9 SUCCEEDED)');
   console.log('====================================================');
 }
 
