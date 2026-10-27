@@ -1,35 +1,43 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
-import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
-import { clearSession, issueSession, requireAuth } from '../middleware/auth.js';
+import { clearSession, createGuestUser, issueSession, requireAuth } from '../middleware/auth.js';
 import { audit } from '../services/audit.js';
+
 const router = Router();
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'AUTH_RATE_LIMIT', message: 'Too many authentication attempts. Try again later.' } });
-const registerSchema = z.object({ fullName: z.string().trim().min(2).max(100), email: z.string().trim().email().max(254), password: z.string().min(10).max(128) });
-router.post('/register', authLimiter, async (req,res,next) => {
-  try {
-    const input = registerSchema.parse(req.body);
-    const email = input.email.toLowerCase();
-    const hash = await bcrypt.hash(input.password, 12);
-    const result = await pool.query("INSERT INTO users(full_name,email,password_hash,role) VALUES ($1,$2,$3,'player') RETURNING id,full_name,email,role,created_at", [input.fullName, email, hash]);
-    issueSession(res, result.rows[0]);
-    await audit(result.rows[0].id, 'user.registered', 'user', result.rows[0].id);
-    res.status(201).json({ user: result.rows[0] });
-  } catch (e) { if (e.code === '23505') return res.status(409).json({ error: 'EMAIL_EXISTS', message: 'An account with this email already exists.' }); next(e); }
+
+// Retrieve current player session, automatically provisioning if needed
+router.get('/me', requireAuth, async (req, res) => {
+  res.json({ user: req.user });
 });
-router.post('/login', authLimiter, async (req,res,next) => {
+
+// Update display name for current player (no password or email needed)
+router.post('/name', requireAuth, async (req, res, next) => {
   try {
-    const input = z.object({ email: z.string().email().max(254), password: z.string().min(1).max(128) }).parse(req.body);
-    const result = await pool.query('SELECT id,full_name,email,role,password_hash FROM users WHERE email=$1', [input.email.toLowerCase()]);
-    const user = result.rows[0];
-    if (!user || !(await bcrypt.compare(input.password, user.password_hash))) return res.status(401).json({ error: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' });
-    issueSession(res, user);
-    await audit(user.id, 'user.logged_in', 'user', user.id);
-    res.json({ user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role } });
-  } catch (e) { next(e); }
+    const { name } = z.object({ name: z.string().trim().min(1).max(50) }).parse(req.body);
+    const result = await pool.query('UPDATE users SET full_name = $1 WHERE id = $2 RETURNING id, full_name, email, role', [name, req.user.id]);
+    await pool.query('UPDATE teams SET name = $1 WHERE leader_id = $2', [`${name}'s Hunt`, req.user.id]);
+    await pool.query('UPDATE characters SET character_name = $1 WHERE user_id = $2', [name.slice(0, 24), req.user.id]);
+    res.json({ user: result.rows[0] });
+  } catch (e) {
+    next(e);
+  }
 });
-router.post('/logout', (req,res) => { clearSession(res); res.json({ ok: true }); });
-router.get('/me', requireAuth, async (req,res) => res.json({ user: req.user }));
+
+// Reset session / fresh player
+router.post('/reset', requireAuth, async (req, res, next) => {
+  try {
+    clearSession(res);
+    const guest = await createGuestUser(res);
+    res.json({ ok: true, user: guest });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post('/logout', (req, res) => {
+  clearSession(res);
+  res.json({ ok: true });
+});
+
 export default router;
