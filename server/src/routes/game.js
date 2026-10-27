@@ -1,17 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
-import { getGameState, getLeaderboard, resetGame, startGame, submitLevel } from '../services/game.js';
+import { getGameState, getLeaderboard, startGame, submitLevel } from '../services/game.js';
 import { pool } from '../db/pool.js';
 const router = Router();
 router.get('/state', requireAuth, async (req,res,next) => { try { res.json(await getGameState(req.user.id)); } catch(e) { next(e); } });
-router.post('/start', requireAuth, async (req,res,next) => {
-  try {
-    const { playerName } = z.object({ playerName: z.string().trim().min(1).max(50).optional() }).parse(req.body || {});
-    res.json(await startGame(req.user.id, playerName));
-  } catch(e) { next(e); }
-});
-router.post('/reset', requireAuth, async (req,res,next) => { try { res.json(await resetGame(req.user.id)); } catch(e) { next(e); } });
+router.post('/start', requireAuth, async (req,res,next) => { try { res.json(await startGame(req.user.id)); } catch(e) { next(e); } });
 router.post('/submit/:level', requireAuth, async (req,res,next) => {
   try {
     const level = Number(req.params.level);

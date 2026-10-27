@@ -76,28 +76,13 @@ export async function getGameState(userId) {
 }
 function publicChallenge(c) { return { assignmentId: c.id, challengeId: c.challenge_id, level: c.level, slug: c.slug, title: c.title, type: c.challenge_type, payload: c.public_payload, startedAt: c.started_at, completedAt: c.completed_at }; }
 
-export async function resetGame(userId) {
-  const team = await getTeamForUser(userId);
-  if (team) {
-    await pool.query('DELETE FROM challenge_submissions WHERE team_challenge_id IN (SELECT id FROM team_challenges WHERE team_id=$1)', [team.id]);
-    await pool.query('DELETE FROM focus_events WHERE team_id=$1', [team.id]);
-    await pool.query('DELETE FROM team_challenges WHERE team_id=$1', [team.id]);
-    await pool.query(`UPDATE teams SET status='lobby',current_level=1,game_started_at=NULL,completed_at=NULL,coins=0,gems=0,current_question=1,focus_violations=0,penalty_seconds=0,wrong_answers=0,terminated_at=NULL WHERE id=$1`, [team.id]);
-  }
-  return getGameState(userId);
-}
-
-export async function startGame(userId, customName = null) {
+export async function startGame(userId) {
   const readiness = await pool.query(`SELECT level, jsonb_array_length(public_payload->'questions') AS question_count FROM challenges WHERE challenge_type='multiple_choice' ORDER BY level`);
   const ready = questionBankIsReady(readiness.rows);
   if (!ready) throw Object.assign(new Error('The question bank is not ready yet. The supplied question bank must be imported before the game can start.'), { status: 409, code: 'QUESTION_BANK_EMPTY' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    if (customName && customName.trim()) {
-      const cleanName = customName.trim().slice(0, 50);
-      await client.query('UPDATE users SET full_name = $1 WHERE id = $2', [cleanName, userId]);
-    }
     let membership = await client.query(`SELECT t.*, (SELECT COUNT(*)::int FROM team_members x WHERE x.team_id=t.id) AS member_count
       FROM teams t JOIN team_members tm ON tm.team_id=t.id WHERE tm.user_id=$1 FOR UPDATE OF t`, [userId]);
     // Legacy multi-player teams are split as each player begins the new individual edition.
@@ -108,23 +93,16 @@ export async function startGame(userId, customName = null) {
     let team;
     if (!membership.rowCount) {
       const user = await client.query('SELECT full_name FROM users WHERE id=$1', [userId]);
-      if (!user.rowCount) throw Object.assign(new Error('Player session expired.'), { status: 401 });
+      if (!user.rowCount) throw Object.assign(new Error('Please sign in again.'), { status: 401 });
       const joinCode = crypto.randomBytes(8).toString('hex').toUpperCase();
       const created = await client.query(`INSERT INTO teams(name,join_code,leader_id,status,current_level) VALUES($1,$2,$3,'lobby',1) RETURNING *`, [`${user.rows[0].full_name}'s Hunt`, joinCode, userId]);
       team = created.rows[0];
       await client.query('INSERT INTO team_members(team_id,user_id) VALUES($1,$2)', [team.id,userId]);
       await client.query(`INSERT INTO characters(user_id,character_name,archetype,appearance) VALUES($1,$2,'The Codebreaker','{"preset":0,"outfit":"bronze"}'::jsonb) ON CONFLICT(user_id) DO NOTHING`, [userId, user.rows[0].full_name.slice(0,24)]);
-    } else {
-      team = membership.rows[0];
-      if (customName && customName.trim()) {
-        const cleanName = customName.trim().slice(0, 50);
-        await client.query('UPDATE teams SET name=$1 WHERE id=$2', [`${cleanName}'s Hunt`, team.id]);
-        await client.query('UPDATE characters SET character_name=$1 WHERE user_id=$2', [cleanName.slice(0, 24), userId]);
-      }
-    }
+    } else team = membership.rows[0];
     const oldAssignments = await client.query('SELECT COUNT(*)::int AS count FROM team_challenges WHERE team_id=$1', [team.id]);
     if (Number(oldAssignments.rows[0].count) === 0) {
-      await client.query(`UPDATE teams SET status='lobby',current_level=1,game_started_at=NULL,completed_at=NULL,coins=0,gems=0,current_question=1,focus_violations=0,penalty_seconds=0,wrong_answers=0,terminated_at=NULL WHERE id=$1`, [team.id]);
+      await client.query(`UPDATE teams SET status='lobby',current_level=1,game_started_at=NULL,completed_at=NULL,coins=0,gems=0,current_question=1,focus_violations=0,terminated_at=NULL WHERE id=$1`, [team.id]);
       team = (await client.query('SELECT * FROM teams WHERE id=$1', [team.id])).rows[0];
     }
     if (team.status === 'completed') throw Object.assign(new Error('This hunt has already been completed.'), { status: 409 });
