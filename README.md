@@ -1,118 +1,173 @@
 # Tech Treasure Hunt — The Lost Archives of Code
 
-An individual-player, five-level treasure hunt built with React + Vite, Node.js/Express, and PostgreSQL. This revision removes the old demo questions and adds a validated question-bank import workflow, fullscreen-style gameplay, persistent coins/gems, focus-event logging, and a Hall of Fame view.
+An individual-player, five-level technical treasure hunt built with **React + Vite**, **Node.js/Express**, and **PostgreSQL**. The platform features 25 beginner-to-intermediate technical challenges across 5 levels, full-screen gameplay, anti-cheat focus-violation tracking, persistent coin and gem rewards, time penalties for incorrect submissions, and a real-time Hall of Fame leaderboard.
 
-## Requirements
+---
+
+## 1. Production Deployment
+
+The application is deployed across modern cloud infrastructure:
+
+- **Frontend (Vercel)**: [https://tech-treasure-hunt-drab.vercel.app/](https://tech-treasure-hunt-drab.vercel.app/)
+- **Backend (Render)**: [https://tech-treasure-hunt-laq9.onrender.com/](https://tech-treasure-hunt-laq9.onrender.com/)
+- **API Health Endpoint**: [https://tech-treasure-hunt-laq9.onrender.com/api/health](https://tech-treasure-hunt-laq9.onrender.com/api/health)
+- **Database**: Managed PostgreSQL on Render
+
+---
+
+## 2. Technology Stack & Architecture
+
+- **Frontend**:
+  - React 18, Vite, React Router, Lucide React icons, Tailwind CSS / Vanilla styling.
+  - Dual-mode API client (`client/src/services/api.js`) supporting cookie sessions (`credentials: 'include'`) and `Authorization: Bearer <token>` fallback stored in `localStorage` (`tth_token`).
+  - SPA routing and backend proxy rewrite via `vercel.json`.
+- **Backend**:
+  - Node.js (v20+) and Express.
+  - Session authentication with bcrypt password hashing (cost factor 12) and JWT session tokens.
+  - Dynamic CORS validator permitting Vercel production domains, preview domains, and local origins.
+  - Connection pooling via `pg` (node-postgres) with production SSL (`rejectUnauthorized: false`) and resilient error handling.
+- **Database**:
+  - PostgreSQL 14+ schema with 6 incremental migrations.
+  - Automated startup migration and question-bank seeding on boot.
+
+---
+
+## 3. Quick Start (Local Development)
+
+### Prerequisites
 - Node.js 20+ and npm
-- Docker Desktop (recommended) or PostgreSQL 14+
-- Windows 10/11 and PowerShell are supported
+- PostgreSQL 14+ or Docker Desktop
+- Windows 10/11 (PowerShell) or macOS/Linux
 
-## Quick start on Windows PowerShell
-Run these commands from the extracted `tech-treasure-hunt` project folder.
+### Step-by-Step Installation
 
 ```powershell
-# 1. Install packages
+# 1. Clone the repository and install root workspace dependencies
+git clone https://github.com/dheerajkmahale/Tech-Treasure-Hunt.git
+cd Tech-Treasure-Hunt
 npm install
 
-# 2. Create your local environment file
+# 2. Configure environment variables
 Copy-Item .env.example server/.env
-# Edit server/.env and set DATABASE_URL, JWT_SECRET, and COOKIE_SECRET.
+# Edit server/.env with your local PostgreSQL DATABASE_URL and secrets
 
-# 3. Start PostgreSQL using Docker Desktop
+# 3. (Option A) Start local PostgreSQL using Docker Compose
 docker compose up -d postgres
 
-# 4. Apply database migrations (includes new 006 penalty columns)
-npm run db:migrate --workspace server
-
-# 5. Import the approved questions (required before starting a game)
-npm run questions:import --workspace server -- ./seeds/approved-question-bank.json
-
-# 6. Start the API (terminal 1)
+# 4. Start the backend API (Terminal 1)
 npm run dev:server
 
-# 7. Start the website (terminal 2)
+# 5. Start the frontend client (Terminal 2)
 npm run dev:client
 ```
 
-Open `http://localhost:5173`. The API health endpoint is `http://localhost:5000/api/health`.
+- Open `http://localhost:5173` in your browser.
+- The local backend API runs on `http://localhost:5000` (Health: `http://localhost:5000/api/health`).
 
-Example local database URL (matches the supplied Docker Compose file):
+---
 
-```env
-DATABASE_URL=postgresql://postgres:local_dev_password@localhost:5432/tech_treasure_hunt
-```
+## 4. Environment Variables Specification
 
-Change the placeholder JWT and cookie secrets in `server/.env` before use beyond local development. Never commit `.env`.
+Refer to [`.env.example`](.env.example) for safe templates. **Never commit `.env` or production credentials to Git.**
 
-## Five levels
-1. **The Cipher Crypt** — Decipher the Script
-2. **The Broken Machine** — Repair What Was Corrupted
-3. **Chamber of Riddles** — Think Like the Ancients
-4. **Scam Sleuths** — Spot the Fraud
-5. **Crack the Logic** — Boolean Gates and Deduction
+### Backend Web Service (Render)
+Configure these in the Render Dashboard (**Web Service** -> **Environment**):
 
-The question bank (`server/seeds/approved-question-bank.json`) now has **25 beginner-friendly questions: 5 per level**. Questions mix typed answers and multiple-choice: Levels 1 and 3 are fully typed, Levels 2 and 5 mix both, and Level 4 is multiple-choice. Level 2 code-fix answers must match the corrected code exactly (capital letters count; spaces are ignored). Any question can include an optional `code` field that is shown as a numbered code block.
+| Variable | Description | Safe Example |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | PostgreSQL connection string (prefer Internal URL on Render) | `postgresql://user:pass@host:5432/treasurehunt` |
+| `NODE_ENV` | Environment mode (`production` enables SSL and cross-site cookies) | `production` |
+| `CLIENT_URL` | Allowed frontend origin for CORS | `https://tech-treasure-hunt-drab.vercel.app` |
+| `JWT_SECRET` | Secret key for signing player session tokens (32+ chars) | `generate_random_secret_at_least_32_chars` |
+| `PORT` | Listening port (injected automatically by Render) | `5000` |
+| `FOCUS_VIOLATION_LIMIT` | Max allowed blur/tab-out events before attempt ends | `3` |
+| `COINS_PER_CORRECT_ANSWER`| Coins awarded per correct answer | `10` |
+| `LEVEL_COMPLETION_BONUS` | Bonus coins for clearing all 5 questions in a level | `25` |
+| `GEMS_PER_LEVEL` | Gems awarded per level completion | `1` |
 
-## Review or replace the supplied question bank
-The included bank is `server/seeds/approved-question-bank.json`. Its question format supports multiple-choice questions, accepted short answers, and a rubric-based written response. Correct answers are stored in the private part of the bank and are not sent to participants.
+### Frontend Application (Vercel)
+Configure in Vercel Project Settings (**Environment Variables**):
 
-To import the included bank, run from the project root:
+| Variable | Description | Value |
+| :--- | :--- | :--- |
+| `VITE_API_URL` | Public backend API origin | `https://tech-treasure-hunt-laq9.onrender.com` |
 
-```powershell
-npm run questions:import --workspace server -- ./seeds/approved-question-bank.json
-```
+---
 
-The importer validates five levels, expected counts (5, 5, 5, 5, 5), unique IDs, answer formats, options, and answer references. If validation fails, it stops without replacing the current bank. A successful import replaces challenge assignments and challenge content, while preserving user accounts and organizer accounts.
+## 5. Database Initialization & The 25-Question Bank
 
-For a future bank, use `server/question-bank.template.json` as a format guide. Each level must contain exactly 5 questions.
+### Automatic Initialization on Startup
+When the backend boots with a configured `DATABASE_URL`:
+1. **Migrations**: `server/src/server.js` automatically invokes `runMigrations()`, safely applying all migration scripts (`001_initial_schema.sql` through `006_penalty_and_timestamps.sql`) in sequence if not already present.
+2. **Official Question Bank**: The server automatically calls `importQuestionBank()` using the official bank in `server/seeds/approved-question-bank.json`. It validates schema, level distribution (5 levels × 5 questions = 25 questions), and seeds challenges idempotently (`ON CONFLICT (id) DO NOTHING`).
 
-**Question privacy:** question text and options are sent to the browser for the active level; correct answers remain in the database's private payload and are never included in the participant game-state response.
-
-## Time and penalty rules
-- Every wrong answer adds **60 seconds** to the player's time (stored in `teams.penalty_seconds`, separate from real elapsed time). The countdown loses 60 s and the Hall of Fame ranks by `elapsed + penalty`.
-- The server ignores repeated submissions that carry the same `attemptId`, so double-clicks/retries never charge twice.
-- Between levels the game shows a congratulations / next-level transition screen.
-- The Hall of Fame shows each player's started and finished timestamp in the viewer's local time.
-
-## Reward rules
-- Correct answer: **10 coins**.
-- Complete every question in a level: **25 bonus coins + 1 gem**.
-- Incorrect answers earn no reward.
-- The backend checks previous successful submissions so replaying a correct answer does not award coins twice.
-- Five gems represent completion of all five levels.
-
-Rewards are stored on the existing game-session/team record. New player sessions automatically create a single-player record and a default character. The legacy team tables remain in the schema for compatibility with existing data, but team assembly is no longer part of the participant interface.
-
-## Fullscreen and focus monitoring
-The game asks for fullscreen only after the player clicks **Start Game in Full Screen**. During an active attempt, it logs fullscreen exits, tab-hidden events, and window blur. The default limit is three incidents; the server terminates the attempt at the configured limit.
-
-Set `FOCUS_VIOLATION_LIMIT` in `server/.env` to change the limit. Reward values can be adjusted with `COINS_PER_CORRECT_ANSWER`, `LEVEL_COMPLETION_BONUS`, and `GEMS_PER_LEVEL`. Focus incidents are timestamped in `focus_events` and deduplicated by client event ID. The UI debounces overlapping browser events.
-
-**Browser limitation:** ordinary websites cannot lock a student's computer or reliably prevent switching apps, opening another device, or using external assistance. Browser focus events can also occur for legitimate operating-system reasons. Explain the rules before the event, use the same threshold for every participant, and have an organizer available to review exceptional cases. Fullscreen permission failure alone does not terminate the attempt.
-
-## Environment options
-- `DATABASE_URL`: PostgreSQL connection string.
-- `JWT_SECRET`, `COOKIE_SECRET`: strong random secrets.
-- `DEFAULT_EVENT_DURATION_MINUTES`: event timer default (existing timer endpoint).
-- `FOCUS_VIOLATION_LIMIT`: allowed focus violations before termination; default `3`.
-- `ORGANIZER_EMAIL` / `ORGANIZER_PASSWORD`: optional organizer account settings used by the existing seed script.
-
-## Testing and known limitations
-- Backend JavaScript syntax checks are available with `npm run check --workspace server`.
-- Frontend production build requires installed npm dependencies (`npm install`, then `npm run build`).
-- Database migrations and gameplay integration require a running PostgreSQL instance. This environment did not provide a running PostgreSQL server, so migrations, real sign-in, reward transactions, and fullscreen browser behavior must be verified locally before the live event.
-- Focus monitoring is best-effort, not a computer lock. Use a consistent policy and an organizer review process.
-- The existing database is retained, but migration `005_remove_legacy_questions.sql` deliberately deletes legacy challenge assignments and challenge content so the old demo questions cannot appear. Player accounts and organizer accounts are preserved.
-- The application uses the existing server-side evaluation boundary, but this revision is a local event-ready foundation, not a security audit or guarantee against cheating.
-
-
-## Importing the questions
-After every update re-run the import (it replaces old challenge content and keeps player accounts):
+### Manual CLI Execution (Optional / Local Dev)
+You can also run migrations and question seeding manually:
 
 ```powershell
+# Run migrations
 npm run db:migrate --workspace server
+
+# Import the official 25-question bank
 npm run questions:import --workspace server -- ./seeds/approved-question-bank.json
 ```
 
-## One-click question update
-After `npm install` and creating `server/.env`, double-click `update-questions.bat` (or run `.\update-questions.ps1`) to start the database, apply migrations and import the question bank in one go.
+### The Five Levels
+1. **The Cipher Crypt** — Decipher the Script (5 typed questions)
+2. **The Broken Machine** — Repair Corrupted Code (5 mixed code/fix questions)
+3. **Chamber of Riddles** — Think Like the Ancients (5 typed questions)
+4. **Scam Sleuths** — Spot the Fraud (5 multiple-choice questions)
+5. **Crack the Logic** — Boolean Gates & Deduction (5 mixed logic questions)
+
+**Question Privacy**: Question titles, descriptions, code snippets, and multiple-choice options are delivered to the participant's browser only for their current active level. Correct answers are kept strictly on the backend and evaluated securely server-side.
+
+---
+
+## 6. Gameplay, Scoring & Anti-Cheat Rules
+
+- **Scoring**:
+  - Correct answer: **10 coins**.
+  - Complete all 5 questions in a level: **25 bonus coins + 1 gem**.
+  - 5 gems represent full completion across all 5 levels.
+  - Re-submitting an already answered question does not award duplicate coins.
+- **Penalties**:
+  - Each incorrect submission adds **60 seconds** of penalty time (`penalty_seconds`), reducing the remaining time countdown. The Hall of Fame leaderboard ranks by `total_time = elapsed_seconds + penalty_seconds`.
+  - Duplicate requests with identical `attemptId` are deduplicated to prevent double penalties on double-clicks.
+- **Fullscreen & Focus Monitoring**:
+  - The game requests browser fullscreen upon starting an attempt.
+  - The client monitors tab-blur, visibility-hidden, and fullscreen-exit events, logging them to `/api/game/focus-event`. Exceeding `FOCUS_VIOLATION_LIMIT` (default: 3) terminates the attempt.
+
+---
+
+## 7. Testing & Verification
+
+The project includes automated validation suites and build verification scripts:
+
+```powershell
+# 1. System verification test suite (covers question bank, validation schemas, bcrypt, JWT, migrations, CORS)
+npm test --workspace server
+
+# 2. Syntax verification on backend services
+npm run check --workspace server
+
+# 3. Client production build check
+npm run build --workspace client
+```
+
+### Verified Test Results
+- **Question Bank Schema & Data Integrity**: 25 questions validated across 5 levels (5 questions/level), zero duplicate IDs.
+- **Authentication Validation**: Zod schema verifies 2-100 char names, RFC email format, and 10-128 char passwords.
+- **Password Security**: Bcrypt cost factor 12 verified for hashing and comparison.
+- **Session Tokens**: JWT signing and claims verification tested.
+- **Migrations**: All 6 migration files verified and sequenced.
+- **CORS Matching**: Dynamic validator tested against Vercel production, preview branches, and localhost.
+- **Vite Build**: Successfully bundles `dist/` with 0 errors.
+
+---
+
+## 8. Current Project Status
+
+- **Backend & Database**: Fully deployed on Render. PostgreSQL is connected, migrations are applied, and the official 25-question bank is imported.
+- **Health Endpoint**: Live and verified responding with `{"status":"ok","service":"tech-treasure-hunt-api","database":"connected"}`.
+- **Frontend**: Live on Vercel with SPA fallback and API proxying configured.
+- **Next Steps for Event Organizers**: Before running a live tournament, perform a complete dry-run playthrough (register an account, play through levels, verify leaderboard sorting) to familiarize organizers with the event flow.
