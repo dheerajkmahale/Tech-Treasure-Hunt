@@ -1,0 +1,409 @@
+{
+  "version": 4,
+  "source_note": "Bank: 5 levels x 5 questions = 25. Level 3 is typed question-and-answer (no options). Levels 4 and 5 are slightly harder. Optional 'code' field renders as a code block.",
+  "levels": [
+    {
+      "level": 1,
+      "title": "The Cipher Crypt",
+      "questions": [
+        {
+          "id": "L1Q1",
+          "question": "A corrupted location string has surfaced in the system. The characters appear scrambled, but no character has been changed. Sometimes, repairing corrupted data requires nothing more than changing your point of view.",
+          "answerType": "text",
+          "code": "K C A B R O O D T N O R F",
+          "_answer": {
+            "acceptedAnswers": [
+              "FRONT DOOR BACK",
+              "FRONTDOORBACK",
+              "front door back",
+              "frontdoorback"
+            ],
+            "explanation": "Reading the characters from right to left reveals FRONTDOORBACK."
+          }
+        },
+        {
+          "id": "L1Q2",
+          "question": "The Logic Lock\n\nTwo binary signals guard the final lock. The system activates every bit that is switched on in either signal. Combine the two signals using a bitwise OR operation. What is the resulting binary code?",
+          "answerType": "text",
+          "code": "Ciphertext: 10101100\nKey:        11000011",
+          "_answer": {
+            "acceptedAnswers": [
+              "11101111"
+            ],
+            "explanation": "A bitwise OR produces 1 whenever either corresponding bit is 1. Applying OR to 10101100 and 11000011 produces 11101111."
+          }
+        },
+        {
+          "id": "L1Q3",
+          "question": "A web developer requests a resource that no longer exists at the specified location. The server returns a familiar three-digit response. Somewhere in this building, a physical room bears that same number. Identify the room and enter its number.",
+          "answerType": "text",
+          "_answer": {
+            "acceptedAnswers": [
+              "404"
+            ],
+            "explanation": "HTTP status code 404 means Not Found. The required room number is 404."
+          }
+        },
+        {
+          "id": "L1Q4",
+          "question": "Encrypted System Log\n\nThe system records the following operations. After the sequence finishes, identify the card currently at the top of the stack.",
+          "answerType": "text",
+          "code": "PUSH(WINDOW)\nPUSH(CLOCK)\nPUSH(DOOR)\nPOP()\nPOP()",
+          "_answer": {
+            "acceptedAnswers": [
+              "WINDOW",
+              "window"
+            ],
+            "explanation": "PUSH adds an item to the top of the stack, while POP removes the top item. DOOR is pushed last, so the first POP removes DOOR and the second removes CLOCK. WINDOW remains at the top."
+          }
+        },
+        {
+          "id": "L1Q5",
+          "question": "An intercepted message appears to contain a hidden route. The analyst left behind a cryptic note: \"You're closer than the letters suggest. The truth lies just before the message.\" Recover the original message.",
+          "answerType": "text",
+          "code": "Uifsf jt b tfdsfu qbui",
+          "_answer": {
+            "acceptedAnswers": [
+              "THERE IS A SECRET PATH",
+              "There is a secret path",
+              "there is a secret path"
+            ],
+            "explanation": "Each letter has been shifted one position forward in the alphabet. Shift every letter one position backward to reveal THERE IS A SECRET PATH."
+          }
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "The Broken Machine",
+      "questions": [
+        {
+          "id": "L2Q1",
+          "title": "The Missing Treasure",
+          "question": "Mission: The treasure scanner skips the final item. Identify the bug to recover all four numbers.\n\nWhich change fixes the bug?",
+          "answerType": "multiple_choice",
+          "code": "int treasure[] = {10, 20, 30, 40};\n\nfor (int i = 0; i < 3; i++) {\n    printf(\"%d \", treasure[i]);\n}",
+          "options": [
+            "Change i = 0 to i = 1",
+            "Change i < 3 to i < 4",
+            "Change i++ to i--",
+            "Change treasure[] to treasure()"
+          ],
+          "_answer": {
+            "correctOption": "B",
+            "explanation": "Array indices are 0, 1, 2, and 3. The condition i < 3 stops the loop before index 3, skipping 40. Changing it to i < 4 prints all four numbers."
+          }
+        },
+        {
+          "id": "L2Q2",
+          "title": "The Corrupted Treasure Decoder",
+          "question": "Mission: The treasure decoder should combine scattered letters into the secret password, but a bug prevents it from working.\n\nFind and fix the bug so that the program prints:\nSecret password: VAULT\n\nEnter the corrected line inside the loop.",
+          "answerType": "text",
+          "code": "letters = [\"V\", \"A\", \"U\", \"L\", \"T\"]\npassword = \"\"\n\nfor i in range(5):\n    password = letters[i]\n\nprint(\"Secret password:\", password)",
+          "_answer": {
+            "acceptedAnswers": [
+              "password += letters[i]",
+              "password = password + letters[i]"
+            ],
+            "explanation": "The original line replaces the password with one letter during every iteration. Using += appends each letter to the existing password, producing VAULT.",
+            "exactMatch": true
+          }
+        },
+        {
+          "id": "L2Q3",
+          "title": "The Double Identity",
+          "question": "Identify the change needed to fix the error in this Python code.",
+          "answerType": "multiple_choice",
+          "code": "x = 5\nif x = 5:\n    print(\"Access granted\")",
+          "options": [
+            "Change the first line to x == 5",
+            "Change the if line to if x == 5:",
+            "Remove the if statement",
+            "Replace print with input"
+          ],
+          "_answer": {
+            "correctOption": "B",
+            "explanation": "The single equals sign assigns a value, while == compares two values. The if statement must use == to check whether x equals 5."
+          }
+        },
+        {
+          "id": "L2Q4",
+          "title": "The Broken Tags",
+          "question": "What is the problem with the following HTML code?",
+          "answerType": "multiple_choice",
+          "code": "<b><i>Lost Archives</b></i>",
+          "options": [
+            "The b tag cannot contain text",
+            "The inner i tag must close before the outer b tag",
+            "HTML does not support nested tags",
+            "Both tags must be replaced with p"
+          ],
+          "_answer": {
+            "correctOption": "B",
+            "explanation": "Nested tags should close in the reverse order in which they were opened. The corrected code is <b><i>Lost Archives</i></b>."
+          }
+        },
+        {
+          "id": "L2Q5",
+          "title": "The Vanishing Variable",
+          "question": "Mission: The vault refuses to open because the program refers to a variable that does not exist.\n\nIdentify the bug and enter ONLY the corrected line of code.",
+          "answerType": "text",
+          "code": "vault_code = 731\nprint(vault_Code)",
+          "_answer": {
+            "acceptedAnswers": [
+              "print(vault_code)"
+            ],
+            "explanation": "Python is case-sensitive. The variable is declared as vault_code, but the code tries to access vault_Code. The corrected line is print(vault_code).",
+            "exactMatch": true
+          }
+        }
+      ]
+    },
+    {
+      "level": 3,
+      "title": "Chamber of Riddles",
+      "questions": [
+        {
+          "id": "L3Q1",
+          "title": "The Memory Keeper",
+          "question": "Riddle: I remember what you are working on, helping your computer access it quickly. But when the power goes out, my contents disappear. What am I?",
+          "answerType": "text",
+          "_answer": {
+            "acceptedAnswers": [
+              "RAM",
+              "Random Access Memory"
+            ],
+            "explanation": "RAM (Random Access Memory) temporarily stores data and instructions currently in use. It is volatile, so its contents are lost when power is removed."
+          }
+        },
+        {
+          "id": "L3Q2",
+          "title": "The Indented Trail",
+          "question": "Riddle: I use indentation to define blocks of code, and my name is also associated with a type of snake. Which programming language am I?",
+          "answerType": "text",
+          "_answer": {
+            "acceptedAnswers": [
+              "Python"
+            ],
+            "explanation": "Python uses indentation to define code blocks, and its name is associated with the snake."
+          }
+        },
+        {
+          "id": "L3Q3",
+          "title": "The Invisible Bridge",
+          "question": "Riddle: I connect your device to a network without a physical cable. You often use me to access the internet at home, college, or a café. What am I?",
+          "answerType": "text",
+          "_answer": {
+            "acceptedAnswers": [
+              "Wi-Fi",
+              "WiFi",
+              "Wireless Fidelity"
+            ],
+            "explanation": "Wi-Fi allows devices to connect to a network wirelessly."
+          }
+        },
+        {
+          "id": "L3Q4",
+          "title": "The Style Spell",
+          "question": "Riddle: HTML gives a webpage its structure, but I control its colours, fonts, spacing, and layout. What technology am I? Enter my abbreviation and full form.",
+          "answerType": "text",
+          "_answer": {
+            "acceptedAnswers": [
+              "CSS",
+              "Cascading Style Sheets",
+              "CSS Cascading Style Sheets",
+              "CSS - Cascading Style Sheets",
+              "CSS: Cascading Style Sheets"
+            ],
+            "explanation": "CSS stands for Cascading Style Sheets. It controls the visual presentation of webpages."
+          }
+        },
+        {
+          "id": "L3Q5",
+          "title": "The Endless Journey",
+          "question": "I repeat the same journey again and again.\n\nI obey a condition, yet one mistake can trap me forever.\n\nMy exit is written in the code, but sometimes I never reach it.\n\nWhat am I?",
+          "answerType": "text",
+          "_answer": {
+            "acceptedAnswers": [
+              "loop",
+              "LOOP",
+              "Loop",
+              "iteration",
+              "Iteration"
+            ],
+            "explanation": "A loop repeats a block of code. If its stopping condition is never met, it can become an infinite loop."
+          }
+        }
+      ]
+    },
+    {
+      "level": 4,
+      "title": "Scam Sleuths",
+      "questions": [
+        {
+          "id": "L4Q1",
+          "title": "The Urgent Warning",
+          "question": "Mission: You receive an email claiming your college account will be permanently deleted in 10 minutes unless you click a link and enter your password.\n\nWhat is the strongest warning sign that this could be a phishing attempt?",
+          "answerType": "multiple_choice",
+          "options": [
+            "The email contains a greeting",
+            "It uses urgency and pressure to make you reveal credentials",
+            "It mentions your college",
+            "It was sent during the day"
+          ],
+          "_answer": {
+            "correctOption": "B",
+            "explanation": "Scammers often create panic and impose artificial deadlines to pressure people into revealing passwords or clicking malicious links."
+          }
+        },
+        {
+          "id": "L4Q2",
+          "title": "The Four Emails: Find the Impostor",
+          "question": "Mission: Four emails arrive in your inbox. Which one is most likely a phishing attempt?",
+          "answerType": "multiple_choice",
+          "options": [
+            "library@svit.edu.in — Your reserved library book is ready for collection.",
+            "security@paypaI-support.example — Your account will be permanently blocked in 10 minutes. Click here to verify your password.",
+            "events@svit.edu.in — Your registration for the college fest is confirmed.",
+            "noreply@results.example — Your semester results are now available. Visit the official student portal."
+          ],
+          "_answer": {
+            "correctOption": "B",
+            "explanation": "Option B combines an urgent threat with a suspicious sender address. The name uses a capital I in place of the lowercase l in 'paypal', making it a potential lookalike. Never trust a sender based only on its display name."
+          }
+        },
+        {
+          "id": "L4Q3",
+          "title": "The QR Reward Trap",
+          "question": "Mission: A stall displays a QR code promising you a ₹500 reward. After scanning it, the page asks for your UPI PIN to receive the money.\n\nWhat should you do?",
+          "answerType": "multiple_choice",
+          "options": [
+            "Enter the PIN if the page has the stall's logo",
+            "Enter the PIN and change it later",
+            "Do not enter the PIN; verify the offer through a trusted channel",
+            "Ask a friend to enter their PIN first"
+          ],
+          "_answer": {
+            "correctOption": "C",
+            "explanation": "A UPI PIN authorizes payments; it is not needed to receive money. Never enter it on a suspicious page."
+          }
+        },
+        {
+          "id": "L4Q4",
+          "title": "The False Security Seal",
+          "question": "Mission: A phishing website looks exactly like a legitimate banking website and uses HTTPS with a padlock icon in the browser.\n\nWhich statement is the most accurate?",
+          "answerType": "multiple_choice",
+          "options": [
+            "The padlock proves that the website is genuine and safe.",
+            "HTTPS encrypts the connection, but it does not prove that the website itself is legitimate.",
+            "Phishing websites cannot use HTTPS certificates.",
+            "A website is safe as long as its URL begins with https://."
+          ],
+          "_answer": {
+            "correctOption": "B",
+            "explanation": "HTTPS encrypts data sent between your browser and the website, but scammers can also obtain HTTPS certificates. Always verify the domain and use trusted links."
+          }
+        },
+        {
+          "id": "L4Q5",
+          "title": "The Disguised Result",
+          "question": "Mission: You receive an email from your college's usual-looking address. It has the correct logo, your full name, and perfect grammar. It asks you to open an attachment called Exam_Results.pdf.exe.\n\nWhat should you conclude?",
+          "answerType": "multiple_choice",
+          "options": [
+            "It is legitimate because the logo is correct.",
+            "It is safe because the sender address looks familiar.",
+            "It is suspicious because the .exe extension indicates an executable file; verify with the college before opening it.",
+            "It is safe if antivirus is installed."
+          ],
+          "_answer": {
+            "correctOption": "C",
+            "explanation": "The final extension is .exe, indicating an executable file. A convincing logo, familiar-looking sender, and perfect grammar do not guarantee safety. Verify the attachment with the college through a trusted channel."
+          }
+        }
+      ]
+    },
+    {
+      "level": 5,
+      "title": "Crack the Logic",
+      "questions": [
+        {
+          "id": "L5Q1",
+          "title": "The Bitwise Key",
+          "question": "Mission: Two binary keys must be combined using bitwise OR to reveal the next code.\n\nEnter the resulting 8-bit binary number.",
+          "answerType": "text",
+          "code": "Key A: 10110100\nKey B: 11001010",
+          "_answer": {
+            "acceptedAnswers": [
+              "11111110"
+            ],
+            "explanation": "Bitwise OR gives 1 whenever either corresponding bit is 1. The resulting binary number is 11111110."
+          }
+        },
+        {
+          "id": "L5Q2",
+          "title": "The Final Combination",
+          "question": "Mission: Evaluate the logic circuit to unlock the final combination.\n\nA = 1\nB = 1\nC = 0\nX = (A AND B) OR C\n\nWhat is the value of X?",
+          "answerType": "multiple_choice",
+          "options": [
+            "0",
+            "1",
+            "2",
+            "Cannot be determined"
+          ],
+          "_answer": {
+            "correctOption": "B",
+            "explanation": "First, A AND B = 1 AND 1 = 1. Then 1 OR 0 = 1. Therefore, X = 1."
+          }
+        },
+        {
+          "id": "L5Q3",
+          "title": "The Universal Key",
+          "question": "In the world of digital logic, one gate holds a special power: by combining multiple copies of itself, you can construct every other basic logic gate. Its output is LOW only when both inputs are HIGH.\n\nQuestion: Which logic gate possesses this universal property?",
+          "answerType": "multiple_choice",
+          "options": [
+            "AND",
+            "OR",
+            "NAND",
+            "XOR"
+          ],
+          "_answer": {
+            "correctOption": "C",
+            "explanation": "NAND is a universal logic gate. Its output is LOW only when both inputs are HIGH, and NAND gates alone can be combined to construct other basic logic gates."
+          }
+        },
+        {
+          "id": "L5Q4",
+          "title": "The NOR Secret",
+          "question": "In digital electronics, which statement about a NOR gate is correct?",
+          "answerType": "multiple_choice",
+          "options": [
+            "It produces HIGH when at least one input is HIGH.",
+            "It produces HIGH only when all inputs are HIGH.",
+            "It produces HIGH only when all inputs are LOW.",
+            "It always produces the opposite output of an XOR gate."
+          ],
+          "_answer": {
+            "correctOption": "C",
+            "explanation": "A NOR gate is the opposite of an OR gate. It produces HIGH only when all its inputs are LOW."
+          }
+        },
+        {
+          "id": "L5Q5",
+          "title": "Will the Alarm Go Off?",
+          "question": "Boolean Logic Challenge: A high-security vault uses this logic circuit:\n\nY = NOT (A AND B) AND C\n\nGiven:\nA = 1\nB = 1\nC = 0\n\nWhat happens when the circuit evaluates the inputs?",
+          "answerType": "multiple_choice",
+          "options": [
+            "The alarm goes off",
+            "The alarm stays silent",
+            "The vault self-destructs",
+            "The system enters lockdown"
+          ],
+          "_answer": {
+            "correctOption": "B",
+            "explanation": "First, A AND B = 1. NOT 1 = 0. Then 0 AND C (which is 0) = 0. The output is LOW, so the alarm stays silent."
+          }
+        }
+      ]
+    }
+  ]
+}

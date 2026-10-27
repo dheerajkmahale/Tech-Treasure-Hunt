@@ -1,0 +1,10 @@
+ALTER TABLE game_events ADD COLUMN IF NOT EXISTS paused_at TIMESTAMPTZ;
+ALTER TABLE game_events ADD COLUMN IF NOT EXISTS accumulated_paused_seconds INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE teams ADD COLUMN IF NOT EXISTS final_score NUMERIC(6,2) NOT NULL DEFAULT 0;
+ALTER TABLE teams ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_challenges_level ON challenges(level);
+CREATE INDEX IF NOT EXISTS idx_game_events_status ON game_events(status);
+CREATE INDEX IF NOT EXISTS idx_ai_evaluations_submission ON ai_evaluations(submission_id);
+CREATE INDEX IF NOT EXISTS idx_teams_completed_at ON teams(completed_at);

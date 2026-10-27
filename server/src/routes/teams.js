@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { requireAuth } from '../middleware/auth.js';
+import { createTeam, getGameState, joinTeam, saveCharacter } from '../services/game.js';
+import { audit } from '../services/audit.js';
+const router = Router();
+router.use(requireAuth);
+router.get('/mine', async (req,res,next) => { try { res.json(await getGameState(req.user.id)); } catch(e) { next(e); } });
+router.post('/', async (req,res,next) => { try { const { name } = z.object({ name: z.string().trim().min(3).max(80) }).parse(req.body); const team = await createTeam(req.user.id, name); await audit(req.user.id,'team.created','team',team.id,{ name: team.name }); res.status(201).json({ team }); } catch(e) { next(e); } });
+router.post('/join', async (req,res,next) => { try { const { joinCode } = z.object({ joinCode: z.string().trim().min(4).max(20) }).parse(req.body); const team = await joinTeam(req.user.id, joinCode); await audit(req.user.id,'team.joined','team',team.id); res.json({ team }); } catch(e) { next(e); } });
+router.put('/character', async (req,res,next) => { try { const character = await saveCharacter(req.user.id, z.object({ characterName: z.string().min(1).max(24), archetype: z.string().min(1).max(40), appearance: z.record(z.any()).optional() }).parse(req.body)); res.json({ character }); } catch(e) { next(e); } });
+export default router;

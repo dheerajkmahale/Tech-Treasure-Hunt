@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "levels": [
+    {
+      "level": 1,
+      "title": "The Cipher Crypt",
+      "questions": []
+    },
+    {
+      "level": 2,
+      "title": "The Broken Machine",
+      "questions": []
+    },
+    {
+      "level": 3,
+      "title": "Chamber of Riddles",
+      "questions": []
+    },
+    {
+      "level": 4,
+      "title": "Scam Sleuths",
+      "questions": []
+    },
+    {
+      "level": 5,
+      "title": "Crack the Logic",
+      "questions": []
+    }
+  ],
+  "question_format": {
+    "id": "L1Q1",
+    "question": "Paste the source question here",
+    "answerType": "multiple_choice | text | text_rubric",
+    "options": [
+      "Option A",
+      "Option B",
+      "Option C",
+      "Option D"
+    ],
+    "_answer": {
+      "correctOption": "B",
+      "acceptedAnswers": [
+        "accepted short-answer variant"
+      ],
+      "requiredGroups": [
+        [
+          "keyword one",
+          "synonym"
+        ]
+      ],
+      "minSentences": 3,
+      "maxSentences": 5,
+      "explanation": "Private answer explanation"
+    }
+  },
+  "note": "The current approved bank contains 7/7/7/6/7 questions from the PDFs; do not invent Level 4 Question 7."
+}

@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tech_treasure_hunt
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - treasure_pgdata:/var/lib/postgresql/data
+volumes:
+  treasure_pgdata:
